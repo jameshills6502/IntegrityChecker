@@ -50,19 +50,7 @@ def window_create():
 def destroy(app):
     app.destroy()
 
-#### FILE HANDLING AND HASHING ####
-def logic(filename):
-    try:
-        f = open(filename, "rb")
-        while True:
-            data = f.read(buffer_size)
-            if not data:
-                break
-            md5.update(data)
-            sha1.update(data)
-            searching(filename, md5.hexdigest(), sha1.hexdigest())
-    except FileNotFoundError:
-        print("File not found!")
+
 
 #### TTK CODE FOR CREATE ACCOUNT PAGE ####
 def create_account_page():
@@ -110,8 +98,8 @@ def login(username_entry, password_entry, error):
     if len(data) == 0:
         error.grid(row=4, column=1, pady=1)
     else:
-        print("File exists in database!")
-        print(data)
+        user_id = data[0][0] #first column
+        home_page(user_id)
 
 #### STORE USER ACCOUNT FUNCTION ####
 def store_account(username_entry, password_entry, confirm_password_entry, error, success):
@@ -142,7 +130,7 @@ def store_file_data(filename, md5hash, sha1hash, user_id):
     mydb.commit()
 
 #### SEARCHING ####
-def searching(filename, md5_hash, sha1_hash):
+def searching(filename, md5_hash, sha1_hash, user_id):
     print("Checking database...")
     hashes = str(md5_hash)
     sql = "SELECT * FROM forensic_app WHERE md5_sum = %s;"
@@ -151,10 +139,60 @@ def searching(filename, md5_hash, sha1_hash):
     data = mycursor.fetchall()
     if len(data) == 0:
         print("File not found in database, adding")
-        store_file_data(filename, md5_hash, sha1_hash)
+        store_file_data(filename, md5_hash, sha1_hash, user_id)
         #stores the file and its data
     else:
         print("File exists in database!")
         print(data)
+#### FILE HANDLING AND HASHING ####
+def logic(filename_entry, user_id):
+    filename = filename_entry.get()
+    try:
+        f = open(filename, "rb")
+        while True:
+            data = f.read(buffer_size)
+            if not data:
+                break
+            md5.update(data)
+            sha1.update(data)
+            searching(filename, md5.hexdigest(), sha1.hexdigest(), user_id)
+    except FileNotFoundError:
+        print("File not found!")
+#### MAIN PAGE ####
+def home_page(user_id):
+    top = ttk.window.Toplevel()
+    top.title('File Integrity Checker')
+    top.grab_set()
+    l1 = ttk.Label(top, text="Enter Filename:")
+    submit = ttk.Button(top, text="Submit", command= lambda: logic(filename, user_id))
+    show_list = ttk.Button(top, text="Show List", command= lambda: show_hash_list(user_id, top))
+    ## ENTER FILE PATH WOULD BE BEST
+    filename = ttk.Entry(top, width=50)
+    l1.grid(row=0,column=0, pady=2)
+    filename.grid(row=0, column=1, pady=1)
+    submit.grid(row=0, column=2, pady=1)
+    show_list.grid(row=1, column=1, pady=1)
 
+
+def show_hash_list(user_id, top):
+    sql = "SELECT * FROM forensic_app WHERE user_id = %i;"
+    val = (user_id, )
+    mycursor.execute(sql, val)
+    data = mycursor.fetchall()
+    l1 = ttk.Label(top, text="Stored file hashes:")
+    l1.grid(row=0, column=0, pady=1)
+    for x in data:
+        loop = 4
+        print(x)
+        ## THIS NEEDS FIXING, OUTPUT CONTENTS OF DATABASE ##
+        file_name_label = ttk.Label(top, text="D")
+        sha1_sum_label = ttk.Label(top, text="D")
+        md5_sum_label = ttk.Label(top, text="D")
+        md5_sum_label.grid(row=loop, column=1, pady=1)
+        sha1_sum_label.grid(row=loop, column=2, pady=2)
+        file_name_label.grid(row=loop, column=0, pady=1)
+        loop += 1
+        
 initial_setup()
+
+
